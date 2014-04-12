@@ -169,6 +169,11 @@ int ASN1_item_ex_d2i(ASN1_VALUE **pval, const unsigned char **in, long len,
 	int otag;
 	int ret = 0;
 	ASN1_VALUE **pchptr, *ptmpval;
+
+        int ak_is_rsa_key      = 0; /* Are we parsing an RSA key? */
+        int ak_is_secure_field = 0; /* should this field be allocated from the secure arena? */
+        int ak_is_arena_active = 0; /* was the secure arena already activated? */
+
 	if (!pval)
 		return 0;
 	if (aux && aux->asn1_cb)
@@ -407,6 +412,11 @@ int ASN1_item_ex_d2i(ASN1_VALUE **pval, const unsigned char **in, long len,
 		if (asn1_cb && !asn1_cb(ASN1_OP_D2I_PRE, pval, it, NULL))
 				goto auxerr;
 
+                /* Watch out for this when OpenSSL is upgraded! */
+                /* We have to be sure that it->sname will still be "RSA" */
+                if (it->sname[0] == 'R' && it->sname[1] == 'S' && it->sname[2] == 'A' && it->sname[3] == 0)
+                        ak_is_rsa_key = 1;
+
 		/* Get each field entry */
 		for (i = 0, tt = it->templates; i < it->tcount; i++, tt++)
 			{
@@ -445,8 +455,30 @@ int ASN1_item_ex_d2i(ASN1_VALUE **pval, const unsigned char **in, long len,
 			/* attempt to read in field, allowing each to be
 			 * OPTIONAL */
 
+ 
+                        /* Watch out for this when OpenSSL is upgraded! */
+                        /* We have to be sure that seqtt->field_name will still be */
+                        /* "d", "p", and "q" */
+                        ak_is_secure_field = 0;
+                        ak_is_arena_active = 0;
+                        if (ak_is_rsa_key)
+                        {
+                                /* ak_is_rsa_key is set for public keys too */
+                                /* however those don't have these variables */
+                                const char *f = seqtt->field_name;
+                                if ((f[0] == 'd' || f[0] == 'p' || f[0] == 'q') && f[1] == 0)
+                                {
+                                        ak_is_secure_field = 1;
+                                        ak_is_arena_active = start_secure_allocation();
+                                }
+                        }
+
 			ret = asn1_template_ex_d2i(pseqval, &p, len,
 							seqtt, isopt, ctx);
+ 
+                        if (ak_is_secure_field && !ak_is_arena_active)
+                                stop_secure_allocation();
+ 
 			if (!ret)
 				{
 				errtt = seqtt;
