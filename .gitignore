@@ -1,3 +1,19 @@
+# Certs
+*.0
+
+# Tests
+test/*test
+sha256t
+sha512t
+rehash.time
+
+# OpenSSL binaries
+apps/openssl
+
+# OpenSSL metadata
+*.pc
+*.bak
+
 # Object files
 *.o
 *.ko
@@ -7,6 +23,8 @@
 # Libraries
 *.lib
 *.a
+*.s
+lib
 
 # Shared objects (inc. Windows DLLs)
 *.dll
