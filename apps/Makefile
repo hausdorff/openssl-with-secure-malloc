@@ -26,7 +26,7 @@ GENERAL=Makefile makeapps.com install.com
 
 DLIBCRYPTO=../libcrypto.a
 DLIBSSL=../libssl.a
-LIBCRYPTO=-L.. -lcrypto
+LIBCRYPTO=-L.. -lcrypto -lpthread
 LIBSSL=-L.. -lssl
 
 PROGRAM= openssl
