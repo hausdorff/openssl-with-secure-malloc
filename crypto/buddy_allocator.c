@@ -40,6 +40,8 @@ void *
 cmm_init(int size, int mem_min_unit, int overrun_bytes)
 {
     int i;
+    size_t pgsize = (size_t)sysconf(_SC_PAGE_SIZE);
+    size_t aligned = (pgsize + size + (pgsize - 1)) & ~(pgsize - 1);
 
     mem_arena_size = size;
     Mem_min_unit   = mem_min_unit,
@@ -71,9 +73,11 @@ cmm_init(int size, int mem_min_unit, int overrun_bytes)
     assert(cmm_bitmalloc);
     memset(cmm_bitmalloc, 0, cmm_bittable_size>>3);
 
-    cmm_arena = mmap(NULL, mem_arena_size, PROT_READ|PROT_WRITE,
+    cmm_arena = mmap(NULL, pgsize + mem_arena_size + pgsize, PROT_READ|PROT_WRITE,
 		     MAP_ANON|MAP_PRIVATE, 0, 0);
     assert(MAP_FAILED  != cmm_arena);
+    mprotect(cmm_arena, pgsize, PROT_NONE);
+    mprotect(cmm_arena + aligned, pgsize, PROT_NONE);
     set_bit(cmm_arena, 0, cmm_bittable);
     cmm_add_to_list(&cmm_free_list[0], cmm_arena);
 
